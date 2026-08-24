@@ -425,6 +425,9 @@
             // Obtener Álbumes Guardados
             const savedAlbums = await spotifyRequest(userId, '/me/albums', { limit: 20 });
 
+            // 🔥 Obtener la canción actual (Now Playing en vivo)
+            const currentlyPlaying = await spotifyRequest(userId, '/me/player/currently-playing');
+
             // Devolver TODOS los datos
             res.json({
                 connected: true,
@@ -433,7 +436,8 @@
                 playlists: userPlaylists,
                 saved_tracks: savedTracks,
                 following: following,
-                saved_albums: savedAlbums
+                saved_albums: savedAlbums,
+                currently_playing: currentlyPlaying
             });
 
         } catch (error) {
