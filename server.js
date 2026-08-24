@@ -582,7 +582,7 @@
                 url: 'https://accounts.spotify.com/api/token',
                 form: {
                     code: code,
-                    redirect_uri: 'https://soul-backend-hbdp.onrender.com/callback',
+                    redirect_uri: 'https://soul-backend-1.onrender.com/callback',
                     grant_type: 'authorization_code'
                 },
                 headers: {
@@ -1035,5 +1035,5 @@
     const PORT = process.env.PORT || 8888;
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 Servidor SOUL corriendo en puerto ${PORT}`);
-        console.log(`📌 URL del servidor: https://soul-backend-hbdp.onrender.com`);
+        console.log(`📌 URL del servidor: https://soul-backend-1.onrender.com`);
     });
