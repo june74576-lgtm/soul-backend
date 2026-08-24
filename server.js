@@ -19,14 +19,16 @@
         const allowedOrigins = [
             'https://courageous-biscochitos-8c3cca.netlify.app',
             'https://*.netlify.app',
+            'https://soul-frontend-nine.vercel.app', // 🔥 URL EXACTA DE VERCEL
+            'https://*.vercel.app', // 🔥 Permite TODAS las URLs de Vercel
             'http://127.0.0.1:3000',
-            'http://localhost:3000',
-            'https://*.vercel.app',
-            'https://soul-frontend-nine.vercel.app'
+            'http://localhost:3000'
         ];
         
         const origin = req.headers.origin;
-        if (origin && (allowedOrigins.includes(origin) || origin.includes('netlify.app'))) {
+        
+        // Si el origen está en la lista, permitirlo. Si NO, usar '*' temporalmente
+        if (origin && (allowedOrigins.includes(origin) || origin.includes('vercel.app') || origin.includes('netlify.app'))) {
             res.header('Access-Control-Allow-Origin', origin);
         } else {
             res.header('Access-Control-Allow-Origin', '*');
