@@ -958,7 +958,61 @@
             });
         }
     });
+    // ============================================================
+    // GET: Obtener TODOS los datos de Spotify de una sola vez
+    // ============================================================
+    app.get('/all-spotify-data', verifyToken, async (req, res) => {
+        try {
+            const userId = req.user.id;
 
+            // Obtener todos los datos EN SECUENCIA (uno por uno)
+            const topArtists = await spotifyRequest(userId, '/me/top/artists', { 
+                time_range: 'short_term', 
+                limit: 5 
+            });
+            
+            await new Promise(resolve => setTimeout(resolve, 200)); // esperar 200ms
+            
+            const topTracks = await spotifyRequest(userId, '/me/top/tracks', { 
+                time_range: 'short_term', 
+                limit: 5 
+            });
+            
+            await new Promise(resolve => setTimeout(resolve, 200)); // esperar 200ms
+            
+            const savedTracks = await spotifyRequest(userId, '/me/tracks', { limit: 6 });
+            
+            await new Promise(resolve => setTimeout(resolve, 200)); // esperar 200ms
+            
+            const following = await spotifyRequest(userId, '/me/following', { 
+                type: 'artist', 
+                limit: 20 
+            });
+            
+            await new Promise(resolve => setTimeout(resolve, 200)); // esperar 200ms
+            
+            const savedAlbums = await spotifyRequest(userId, '/me/albums', { limit: 20 });
+            
+            await new Promise(resolve => setTimeout(resolve, 200)); // esperar 200ms
+            
+            const playlists = await spotifyRequest(userId, '/me/playlists', { limit: 50 });
+
+            // Devolver todo en UNA sola respuesta
+            res.json({
+                top_artists: topArtists,
+                top_tracks: topTracks,
+                saved_tracks: savedTracks,
+                following: following,
+                saved_albums: savedAlbums,
+                playlists: playlists,
+                currently_playing: await spotifyRequest(userId, '/me/player/currently-playing')
+            });
+
+        } catch (error) {
+            console.error('❌ Error en /all-spotify-data:', error);
+            res.status(500).json({ error: error.message });
+        }
+    });
     // ============================================================
     // SPOTIFY PÚBLICO (Para ver datos sin login)
     // ============================================================
