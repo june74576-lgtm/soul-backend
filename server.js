@@ -354,6 +354,7 @@
                 bio: data.bio || '',
                 banner_url: data.banner_url || '',
                 avatar_url: data.avatar_url || '',
+                background_url: data.background_url || '',
                 social_links: data.social_links || {},
                 spotify_connected: data.spotify_connected
             });
@@ -425,9 +426,9 @@
         }
 
         const type = req.body.type;
-        if (!type || (type !== 'banner' && type !== 'avatar')) {
+        if (!type || (type !== 'banner' && type !== 'avatar' && type !== 'background')) {
             return res.status(400).json({ 
-                error: 'Tipo de imagen inválido. Usa "banner" o "avatar".' 
+                error: 'Tipo de imagen inválido. Usa "banner", "avatar" o "background".' 
             });
         }
 
@@ -465,7 +466,9 @@
             const imageUrl = urlData.publicUrl;
             console.log('🔗 URL pública:', imageUrl);
 
-            const updateField = type === 'banner' ? 'banner_url' : 'avatar_url';
+            const updateField = type === 'banner' ? 'banner_url' : 
+                    type === 'avatar' ? 'avatar_url' : 
+                    'background_url';
             console.log(`📝 Actualizando campo: ${updateField}`);
 
             const { data: profile, error: updateError } = await supabase
