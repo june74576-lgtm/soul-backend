@@ -352,7 +352,7 @@
                 return res.status(404).json({ error: 'Usuario no encontrado' });
             }
 
-            // Devolver datos públicos (sin tokens de Spotify)
+            // Devolver datos públicos (con Spotify conectado si existe)
             res.json({
                 id: data.user_id,
                 email: null, // No mostrar email
@@ -361,7 +361,7 @@
                 banner_url: data.banner_url || '',
                 avatar_url: data.avatar_url || '',
                 social_links: data.social_links || {},
-                spotify_connected: false // No mostrar datos privados de Spotify
+                spotify_connected: data.spotify_connected // 🔥 Ahora muestra el estado real
             });
         } catch (error) {
             console.error('❌ Error en /public-profile:', error);
