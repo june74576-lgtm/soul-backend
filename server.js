@@ -403,10 +403,14 @@
                 limit: 5 
             });
 
+            // Obtener el perfil del usuario para su ID de Spotify
+            const userProfile = await spotifyRequest(userId, '/me');
+            const spotifyUserId = userProfile.id;
+
             // Obtener Playlists (solo las del usuario)
             const playlists = await spotifyRequest(userId, '/me/playlists', { limit: 50 });
             const userPlaylists = playlists.items.filter(playlist => {
-                return playlist.owner?.id === (await spotifyRequest(userId, '/me')).id;
+                return playlist.owner?.id === spotifyUserId;
             });
 
             // Devolver todos los datos
