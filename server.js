@@ -20,7 +20,8 @@
             'https://courageous-biscochitos-8c3cca.netlify.app',
             'https://*.netlify.app',
             'http://127.0.0.1:3000',
-            'http://localhost:3000'
+            'http://localhost:3000',
+            'https://*.vercel.app'
         ];
         
         const origin = req.headers.origin;
