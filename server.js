@@ -61,7 +61,7 @@
     // Spotify
     const spotifyClientId = 'fed9178fa0784af6a1c611ac82c91f60';
     const spotifyClientSecret = '289897deab3b4d5e8957c61de046f8a8';
-    const spotifyRedirectUri = 'https://soul-backend-hbdp.onrender.com/callback';
+    const spotifyRedirectUri = 'https://soul-backend-1.onrender.com/callback';
 
     // ============================================================
     // 4. RUTA DE PRUEBA
