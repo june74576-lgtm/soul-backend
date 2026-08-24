@@ -369,6 +369,60 @@
         }
     });
     // ============================================================
+    // SPOTIFY PÚBLICO (Para ver datos sin login)
+    // ============================================================
+    app.get('/public-spotify/:username', async (req, res) => {
+        try {
+            const username = req.params.username;
+            
+            // Buscar el ID del usuario en Supabase
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('user_id, spotify_connected')
+                .eq('username', username)
+                .maybeSingle();
+
+            if (error) throw error;
+
+            if (!profile || !profile.spotify_connected) {
+                return res.json({ connected: false });
+            }
+
+            // Usar el ID del usuario para obtener sus datos de Spotify
+            const userId = profile.user_id;
+
+            // Obtener Top Artistas
+            const topArtists = await spotifyRequest(userId, '/me/top/artists', { 
+                time_range: 'short_term', 
+                limit: 5 
+            });
+
+            // Obtener Top Canciones
+            const topTracks = await spotifyRequest(userId, '/me/top/tracks', { 
+                time_range: 'short_term', 
+                limit: 5 
+            });
+
+            // Obtener Playlists (solo las del usuario)
+            const playlists = await spotifyRequest(userId, '/me/playlists', { limit: 50 });
+            const userPlaylists = playlists.items.filter(playlist => {
+                return playlist.owner?.id === (await spotifyRequest(userId, '/me')).id;
+            });
+
+            // Devolver todos los datos
+            res.json({
+                connected: true,
+                top_artists: topArtists,
+                top_tracks: topTracks,
+                playlists: userPlaylists
+            });
+
+        } catch (error) {
+            console.error('❌ Error en /public-spotify:', error);
+            res.status(500).json({ error: error.message, connected: false });
+        }
+    });
+    // ============================================================
     // 10. PERFIL: ACTUALIZAR
     // ============================================================
     app.put('/profile', verifyToken, async (req, res) => {
