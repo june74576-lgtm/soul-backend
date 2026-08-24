@@ -21,7 +21,8 @@
             'https://*.netlify.app',
             'http://127.0.0.1:3000',
             'http://localhost:3000',
-            'https://*.vercel.app'
+            'https://*.vercel.app',
+            'https://soul-frontend-nine.vercel.app'
         ];
         
         const origin = req.headers.origin;
