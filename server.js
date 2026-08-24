@@ -582,7 +582,7 @@
                 url: 'https://accounts.spotify.com/api/token',
                 form: {
                     code: code,
-                    redirect_uri: spotifyRedirectUri,
+                    redirect_uri: 'https://soul-backend-hbdp.onrender.com/callback',
                     grant_type: 'authorization_code'
                 },
                 headers: {
@@ -610,6 +610,7 @@
 
             if (updateError) throw updateError;
 
+            // Redirigir al frontend (Vercel)
             res.redirect('https://soul-frontend-nine.vercel.app?spotify=connected');
 
         } catch (error) {
