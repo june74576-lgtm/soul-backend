@@ -19,15 +19,14 @@
         const allowedOrigins = [
             'https://courageous-biscochitos-8c3cca.netlify.app',
             'https://*.netlify.app',
-            'https://soul-frontend-nine.vercel.app', // 🔥 URL EXACTA DE VERCEL
-            'https://*.vercel.app', // 🔥 Permite TODAS las URLs de Vercel
+            'https://soul-frontend-nine.vercel.app',
+            'https://*.vercel.app',
             'http://127.0.0.1:3000',
             'http://localhost:3000'
         ];
         
         const origin = req.headers.origin;
         
-        // Si el origen está en la lista, permitirlo. Si NO, usar '*' temporalmente
         if (origin && (allowedOrigins.includes(origin) || origin.includes('vercel.app') || origin.includes('netlify.app'))) {
             res.header('Access-Control-Allow-Origin', origin);
         } else {
@@ -72,8 +71,6 @@
             message: '🚀 SOUL API está funcionando',
             version: '1.0.0',
             endpoints: {
-                test: '/test',
-                ping: '/ping',
                 auth: {
                     login: '/auth/login [POST]',
                     register: '/auth/register [POST]',
@@ -115,7 +112,6 @@
         console.log('🔍 Headers de autorización:', authHeader ? '✅ Presente' : '❌ Ausente');
 
         if (!authHeader) {
-            console.log('❌ No hay header de autorización');
             return res.status(401).json({ error: 'No token' });
         }
 
@@ -123,7 +119,6 @@
         console.log('📝 Token recibido (primeros 30 chars):', token?.substring(0, 30) + '...');
 
         if (!token) {
-            console.log('❌ No hay token en el header');
             return res.status(401).json({ error: 'No token' });
         }
 
@@ -332,6 +327,7 @@
             res.status(500).json({ error: error.message });
         }
     });
+
     // ============================================================
     // PERFIL PÚBLICO (Para compartir sin login)
     // ============================================================
@@ -339,7 +335,6 @@
         try {
             const username = req.params.username;
             
-            // Buscar el perfil por username
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
@@ -352,99 +347,22 @@
                 return res.status(404).json({ error: 'Usuario no encontrado' });
             }
 
-            // Devolver datos públicos (con Spotify conectado si existe)
             res.json({
                 id: data.user_id,
-                email: null, // No mostrar email
+                email: null,
                 username: data.username,
                 bio: data.bio || '',
                 banner_url: data.banner_url || '',
                 avatar_url: data.avatar_url || '',
                 social_links: data.social_links || {},
-                spotify_connected: data.spotify_connected // 🔥 Ahora muestra el estado real
+                spotify_connected: data.spotify_connected
             });
         } catch (error) {
             console.error('❌ Error en /public-profile:', error);
             res.status(500).json({ error: error.message });
         }
     });
-    // ============================================================
-    // SPOTIFY PÚBLICO (Para ver datos sin login)
-    // ============================================================
-    app.get('/public-spotify/:username', async (req, res) => {
-        try {
-            const username = req.params.username;
-            
-            // Buscar el ID del usuario en Supabase
-            const { data: profile, error } = await supabase
-                .from('profiles')
-                .select('user_id, spotify_connected')
-                .eq('username', username)
-                .maybeSingle();
 
-            if (error) throw error;
-
-            if (!profile || !profile.spotify_connected) {
-                return res.json({ connected: false });
-            }
-
-            // Usar el ID del usuario para obtener sus datos de Spotify
-            const userId = profile.user_id;
-
-            // Obtener el perfil del usuario para su ID de Spotify
-            const userProfile = await spotifyRequest(userId, '/me');
-            const spotifyUserId = userProfile.id;
-
-            // Obtener Top Artistas
-            const topArtists = await spotifyRequest(userId, '/me/top/artists', { 
-                time_range: 'short_term', 
-                limit: 5 
-            });
-
-            // Obtener Top Canciones
-            const topTracks = await spotifyRequest(userId, '/me/top/tracks', { 
-                time_range: 'short_term', 
-                limit: 5 
-            });
-
-            // Obtener Playlists (solo las del usuario)
-            const playlists = await spotifyRequest(userId, '/me/playlists', { limit: 50 });
-            const userPlaylists = playlists.items.filter(playlist => {
-                return playlist.owner?.id === spotifyUserId;
-            });
-
-            // Obtener Canciones Guardadas (Likes)
-            const savedTracks = await spotifyRequest(userId, '/me/tracks', { limit: 6 });
-
-            // Obtener Artistas Seguidos
-            const following = await spotifyRequest(userId, '/me/following', { 
-                type: 'artist', 
-                limit: 20 
-            });
-
-            // Obtener Álbumes Guardados
-            const savedAlbums = await spotifyRequest(userId, '/me/albums', { limit: 20 });
-
-            // 🔥 Obtener la canción actual (Now Playing en vivo)
-            const currentlyPlaying = await spotifyRequest(userId, '/me/player/currently-playing');
-
-            // Devolver TODOS los datos
-            res.json({
-                connected: true,
-                top_artists: topArtists,
-                top_tracks: topTracks,
-                playlists: userPlaylists,
-                saved_tracks: savedTracks,
-                following: following,
-                saved_albums: savedAlbums,
-                currently_playing: currentlyPlaying
-            });
-
-        } catch (error) {
-            console.error('❌ Error en /public-spotify:', error);
-            res.status(500).json({ error: error.message, connected: false });
-        }
-    });
     // ============================================================
     // 10. PERFIL: ACTUALIZAR
     // ============================================================
@@ -475,7 +393,7 @@
         }
     });
 
-        // ============================================================
+    // ============================================================
     // 11. PERFIL: SUBIR IMAGEN
     // ============================================================
     const storage = multer.memoryStorage();
@@ -624,7 +542,7 @@
     });
 
     // ============================================================
-    // SPOTIFY: DESCONECTAR (NUEVO)
+    // SPOTIFY: DESCONECTAR
     // ============================================================
     app.post('/spotify/disconnect', verifyToken, async (req, res) => {
         try {
@@ -692,7 +610,7 @@
 
             if (updateError) throw updateError;
 
-            res.redirect('https://courageous-biscochitos-8c3cca.netlify.app?spotify=connected');
+            res.redirect('https://soul-frontend-nine.vercel.app?spotify=connected');
 
         } catch (error) {
             console.error('❌ Error en callback Spotify:', error);
@@ -1014,19 +932,12 @@
             
             const userProfile = await spotifyRequest(req.user.id, '/me');
             const spotifyUserId = userProfile.id;
-            console.log(`🔍 Usuario Spotify ID: ${spotifyUserId}`);
-            console.log(`🔍 Nombre de usuario: ${userProfile.display_name}`);
             
             const data = await spotifyRequest(req.user.id, '/me/playlists', { limit: 50 });
-            console.log(`📊 Total de playlists obtenidas: ${data.items.length}`);
             
             const userPlaylists = data.items.filter(playlist => {
-                const isOwner = playlist.owner?.id === spotifyUserId;
-                console.log(`  📌 "${playlist.name}" - Owner: ${playlist.owner?.display_name || playlist.owner?.id} - Es dueño: ${isOwner}`);
-                return isOwner;
+                return playlist.owner?.id === spotifyUserId;
             });
-            
-            console.log(`✅ ${userPlaylists.length} playlists del usuario (de ${data.items.length} totales)`);
             
             res.json({ items: userPlaylists });
             
@@ -1044,6 +955,76 @@
             res.status(status).json({ 
                 error: error.message || 'Error al obtener playlists'
             });
+        }
+    });
+
+    // ============================================================
+    // SPOTIFY PÚBLICO (Para ver datos sin login)
+    // ============================================================
+    app.get('/public-spotify/:username', async (req, res) => {
+        try {
+            const username = req.params.username;
+            
+            // Buscar el ID del usuario en Supabase
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('user_id, spotify_connected')
+                .eq('username', username)
+                .maybeSingle();
+
+            if (error) throw error;
+
+            if (!profile || !profile.spotify_connected) {
+                return res.json({ connected: false });
+            }
+
+            // Usar el ID del usuario para obtener sus datos de Spotify
+            const userId = profile.user_id;
+
+            // Obtener Top Artistas
+            const topArtists = await spotifyRequest(userId, '/me/top/artists', { 
+                time_range: 'short_term', 
+                limit: 5 
+            });
+
+            // Obtener Top Canciones
+            const topTracks = await spotifyRequest(userId, '/me/top/tracks', { 
+                time_range: 'short_term', 
+                limit: 5 
+            });
+
+            // Obtener Playlists
+            const playlists = await spotifyRequest(userId, '/me/playlists', { limit: 50 });
+            
+            // Obtener Canciones Guardadas
+            const savedTracks = await spotifyRequest(userId, '/me/tracks', { limit: 6 });
+
+            // Obtener Artistas Seguidos
+            const following = await spotifyRequest(userId, '/me/following', { 
+                type: 'artist', 
+                limit: 20 
+            });
+
+            // Obtener Álbumes Guardados
+            const savedAlbums = await spotifyRequest(userId, '/me/albums', { limit: 20 });
+
+            // Obtener la canción actual
+            const currentlyPlaying = await spotifyRequest(userId, '/me/player/currently-playing');
+
+            res.json({
+                connected: true,
+                top_artists: topArtists,
+                top_tracks: topTracks,
+                playlists: playlists.items,
+                saved_tracks: savedTracks,
+                following: following,
+                saved_albums: savedAlbums,
+                currently_playing: currentlyPlaying
+            });
+
+        } catch (error) {
+            console.error('❌ Error en /public-spotify:', error);
+            res.status(500).json({ error: error.message, connected: false });
         }
     });
 
