@@ -391,6 +391,10 @@
             // Usar el ID del usuario para obtener sus datos de Spotify
             const userId = profile.user_id;
 
+            // Obtener el perfil del usuario para su ID de Spotify
+            const userProfile = await spotifyRequest(userId, '/me');
+            const spotifyUserId = userProfile.id;
+
             // Obtener Top Artistas
             const topArtists = await spotifyRequest(userId, '/me/top/artists', { 
                 time_range: 'short_term', 
@@ -403,22 +407,33 @@
                 limit: 5 
             });
 
-            // Obtener el perfil del usuario para su ID de Spotify
-            const userProfile = await spotifyRequest(userId, '/me');
-            const spotifyUserId = userProfile.id;
-
             // Obtener Playlists (solo las del usuario)
             const playlists = await spotifyRequest(userId, '/me/playlists', { limit: 50 });
             const userPlaylists = playlists.items.filter(playlist => {
                 return playlist.owner?.id === spotifyUserId;
             });
 
-            // Devolver todos los datos
+            // Obtener Canciones Guardadas (Likes)
+            const savedTracks = await spotifyRequest(userId, '/me/tracks', { limit: 6 });
+
+            // Obtener Artistas Seguidos
+            const following = await spotifyRequest(userId, '/me/following', { 
+                type: 'artist', 
+                limit: 20 
+            });
+
+            // Obtener Álbumes Guardados
+            const savedAlbums = await spotifyRequest(userId, '/me/albums', { limit: 20 });
+
+            // Devolver TODOS los datos
             res.json({
                 connected: true,
                 top_artists: topArtists,
                 top_tracks: topTracks,
-                playlists: userPlaylists
+                playlists: userPlaylists,
+                saved_tracks: savedTracks,
+                following: following,
+                saved_albums: savedAlbums
             });
 
         } catch (error) {
