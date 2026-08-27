@@ -335,10 +335,11 @@
         try {
             const username = req.params.username;
             
+            // 🔥 Buscar sin distinguir mayúsculas/minúsculas
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
-                .eq('username', username)
+                .ilike('username', username) // Usar ilike en lugar de eq
                 .maybeSingle();
 
             if (error) throw error;
