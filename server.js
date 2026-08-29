@@ -1032,7 +1032,7 @@
             // Buscar el usuario en Supabase
             const { data: profile, error } = await supabase
                 .from('profiles')
-                .select('user_id, spotify_connected')
+                .select('user_id, spotify_connected, spotify_token, spotify_refresh_token')
                 .ilike('username', username)
                 .maybeSingle();
 
@@ -1041,8 +1041,32 @@
                 throw error;
             }
 
-            if (!profile || !profile.spotify_connected) {
-                return res.json({ connected: false });
+            if (!profile) {
+                console.log(`⚠️ Usuario no encontrado: ${username}`);
+                return res.json({ 
+                    connected: false, 
+                    currently_playing: null,
+                    error: 'Usuario no encontrado'
+                });
+            }
+
+            if (!profile.spotify_connected) {
+                console.log(`⚠️ Spotify no conectado para: ${username}`);
+                return res.json({ 
+                    connected: false, 
+                    currently_playing: null,
+                    error: 'Spotify no conectado'
+                });
+            }
+
+            // 🔥 Verificar si hay token válido antes de hacer la petición
+            if (!profile.spotify_token) {
+                console.log(`⚠️ No hay token de Spotify para: ${username}`);
+                return res.json({ 
+                    connected: false, 
+                    currently_playing: null,
+                    error: 'Token de Spotify no disponible'
+                });
             }
 
             // Intentar obtener solo Now Playing
@@ -1054,12 +1078,34 @@
                     currently_playing: currentlyPlaying
                 });
             } catch (npError) {
-                console.log(`⚠️ No hay canción sonando para: ${username}`);
+                console.log(`⚠️ Error obteniendo Now Playing para ${username}:`, npError.message);
+                
+                // 🔥 Manejar específicamente el error 403
+                if (npError.status === 403) {
+                    console.log(`🔴 Error 403: El usuario ${username} no está registrado en la aplicación de Spotify`);
+                    return res.json({
+                        connected: false,
+                        currently_playing: null,
+                        error: 'El usuario necesita reconectar Spotify en la aplicación',
+                        needs_reconnect: true
+                    });
+                }
+                
                 // Si es 204 (no hay canción) o 429, devolver null
+                if (npError.status === 204) {
+                    return res.json({
+                        connected: true,
+                        currently_playing: null,
+                        _message: 'No hay canción sonando'
+                    });
+                }
+                
+                // Para otros errores, devolver null pero mantener connected=true
                 return res.json({
                     connected: true,
                     currently_playing: null,
-                    _message: npError.status === 429 ? 'Rate limit, intenta de nuevo' : 'No playing'
+                    _message: 'Error al obtener canción actual',
+                    _error: npError.message
                 });
             }
             
