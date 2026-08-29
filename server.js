@@ -1019,6 +1019,59 @@
             res.status(500).json({ error: error.message });
         }
     });
+
+    // ============================================================
+    // SPOTIFY NOW PLAYING PÚBLICO (Sin caché pesado)
+    // ============================================================
+    app.get('/public-nowplaying/:username', async (req, res) => {
+        try {
+            const username = req.params.username;
+            
+            console.log(`🎵 [NOW PLAYING] Solicitando canción actual para: ${username}`);
+            
+            // Buscar el usuario en Supabase
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('user_id, spotify_connected')
+                .ilike('username', username)
+                .maybeSingle();
+
+            if (error) {
+                console.error('❌ Error en Supabase:', error);
+                throw error;
+            }
+
+            if (!profile || !profile.spotify_connected) {
+                return res.json({ connected: false });
+            }
+
+            // Intentar obtener solo Now Playing
+            try {
+                const currentlyPlaying = await spotifyRequest(profile.user_id, '/me/player/currently-playing');
+                console.log(`✅ Now Playing obtenido para: ${username}`);
+                return res.json({
+                    connected: true,
+                    currently_playing: currentlyPlaying
+                });
+            } catch (npError) {
+                console.log(`⚠️ No hay canción sonando para: ${username}`);
+                // Si es 204 (no hay canción) o 429, devolver null
+                return res.json({
+                    connected: true,
+                    currently_playing: null,
+                    _message: npError.status === 429 ? 'Rate limit, intenta de nuevo' : 'No playing'
+                });
+            }
+            
+        } catch (error) {
+            console.error('❌ Error en /public-nowplaying:', error);
+            res.status(500).json({ 
+                connected: false, 
+                currently_playing: null,
+                error: error.message 
+            });
+        }
+    });
     // ============================================================
     // SPOTIFY PÚBLICO (Para ver datos sin login) - CON CACHÉ
     // ============================================================
