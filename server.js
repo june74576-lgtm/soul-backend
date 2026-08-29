@@ -1020,23 +1020,60 @@
         }
     });
     // ============================================================
-    // SPOTIFY PÚBLICO (Para ver datos sin login)
+    // SPOTIFY PÚBLICO (Para ver datos sin login) - CON CACHÉ
     // ============================================================
+    const spotifyCache = new Map();
+
+    // Limpiar caché cada 5 minutos
+    setInterval(() => {
+        const now = Date.now();
+        for (const [key, value] of spotifyCache.entries()) {
+            if (now - value.timestamp > 30000) {
+                spotifyCache.delete(key);
+            }
+        }
+    }, 300000);
+
     app.get('/public-spotify/:username', async (req, res) => {
         try {
             const username = req.params.username;
+            const cacheKey = `public_spotify_${username.toLowerCase()}`;
             
-            // Buscar el ID del usuario en Supabase
+            // Verificar caché
+            const cached = spotifyCache.get(cacheKey);
+            if (cached && (Date.now() - cached.timestamp < 30000)) {
+                console.log(`📦 [CACHÉ] Sirviendo datos cacheados para: ${username}`);
+                return res.json(cached.data);
+            }
+            
+            console.log(`🔄 [API] Solicitando datos frescos de Spotify para: ${username}`);
+            
+            // 🔥 BUSCAR POR username SIN DISTINGUIR MAYÚSCULAS/MINÚSCULAS
             const { data: profile, error } = await supabase
                 .from('profiles')
-                .select('user_id, spotify_connected')
-                .eq('username', username)
+                .select('user_id, spotify_connected, spotify_token, spotify_refresh_token')
+                .ilike('username', username)  // ← Usar ilike para búsqueda case-insensitive
                 .maybeSingle();
 
-            if (error) throw error;
+            if (error) {
+                console.error('❌ Error en Supabase:', error);
+                throw error;
+            }
+
+            console.log('📊 Perfil encontrado:', profile ? '✅ Sí' : '❌ No');
+            console.log('📊 Spotify conectado:', profile?.spotify_connected);
 
             if (!profile || !profile.spotify_connected) {
-                return res.json({ connected: false });
+                // Cachear estado "no conectado" por 60 segundos
+                const notConnectedData = { 
+                    connected: false,
+                    error: 'Este usuario no tiene Spotify conectado.'
+                };
+                spotifyCache.set(cacheKey, {
+                    data: notConnectedData,
+                    timestamp: Date.now()
+                });
+                return res.json(notConnectedData);
             }
 
             // Usar el ID del usuario para obtener sus datos de Spotify
@@ -1072,20 +1109,44 @@
             // Obtener la canción actual
             const currentlyPlaying = await spotifyRequest(userId, '/me/player/currently-playing');
 
-            res.json({
+            const responseData = {
                 connected: true,
-                top_artists: topArtists,
-                top_tracks: topTracks,
-                playlists: playlists.items,
-                saved_tracks: savedTracks,
-                following: following,
-                saved_albums: savedAlbums,
-                currently_playing: currentlyPlaying
+                top_artists: topArtists || { items: [] },
+                top_tracks: topTracks || { items: [] },
+                playlists: playlists?.items || [],
+                saved_tracks: savedTracks || { items: [] },
+                following: following || { artists: { items: [] } },
+                saved_albums: savedAlbums || { items: [] },
+                currently_playing: currentlyPlaying || null
+            };
+
+            // Guardar en caché
+            spotifyCache.set(cacheKey, {
+                data: responseData,
+                timestamp: Date.now()
             });
+
+            console.log(`✅ Datos de Spotify devueltos para: ${username}`);
+            res.json(responseData);
 
         } catch (error) {
             console.error('❌ Error en /public-spotify:', error);
-            res.status(500).json({ error: error.message, connected: false });
+            
+            // Intentar devolver caché expirado como fallback
+            const cacheKey = `public_spotify_${req.params.username.toLowerCase()}`;
+            const cached = spotifyCache.get(cacheKey);
+            if (cached) {
+                console.log(`⚠️ [CACHÉ] Error en API, devolviendo caché expirado para: ${req.params.username}`);
+                return res.json({
+                    ...cached.data,
+                    _cached_fallback: true
+                });
+            }
+            
+            res.status(500).json({ 
+                error: error.message || 'Error al obtener datos de Spotify',
+                connected: false 
+            });
         }
     });
 
