@@ -193,6 +193,7 @@
                     bio: profile?.bio || '',
                     banner_url: profile?.banner_url || '',
                     avatar_url: profile?.avatar_url || '',
+                    background_url: profile.background_url || '',
                     social_links: profile?.social_links || {},
                     spotify_connected: profile?.spotify_connected || false,
                 }
@@ -318,6 +319,7 @@
                 bio: profile.bio || '',
                 banner_url: profile.banner_url || '',
                 avatar_url: profile.avatar_url || '',
+                background_url: profile.background_url || '',
                 social_links: profile.social_links || {},
                 spotify_connected: profile.spotify_connected || false,
             });
